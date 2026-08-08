@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "secretary"
+version = "0.1.0"
+description = "Пакетная транскрибация аудио в текст (локально, faster-whisper)"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "faster-whisper>=1.1.0",
+    "tqdm>=4.66",
+    "huggingface_hub>=0.24",
+]
+
+[project.scripts]
+secretary = "secretary.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

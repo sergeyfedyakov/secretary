@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Виртуальные окружения
+.venv/
+venv/
+env/
+
+# Секреты / локальная конфигурация
+.env
+.env.local
+.env.*.local
+
+# Кэши инструментов
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Кэш моделей
+.models_cache/
+model_cache/
+
+# Результаты транскрибации/аудио
+output/
+*.transcript.txt
+testdata/**/*.txt
+*.wav.tmp
+
+# IDE / ОС
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+.DS_Store
+Thumbs.db

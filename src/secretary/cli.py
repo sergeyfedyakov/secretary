@@ -6,6 +6,7 @@ import argparse
 import os
 import sys
 import traceback
+from glob import glob, has_magic
 from pathlib import Path
 
 from . import __version__
@@ -24,7 +25,8 @@ def build_parser() -> argparse.ArgumentParser:
         "inputs",
         nargs="+",
         metavar="ФАЙЛ_ИЛИ_ПАПКА",
-        help="Аудиофайлы или папки (сканируются рекурсивно)",
+        help="Аудиофайлы, папки (сканируются рекурсивно) или glob-паттерны, "
+             "например \"D:\\записи\\*.mp4\"",
     )
     parser.add_argument(
         "--model",
@@ -80,15 +82,20 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def collect_files(inputs: list[str]) -> list[Path]:
+    """Собирает аудиофайлы из путей/папок/glob-паттернов (рекурсивно)."""
     files: list[Path] = []
     for raw in inputs:
-        path = Path(raw)
-        if path.is_dir():
-            files.extend(p for p in path.rglob("*") if p.suffix.lower() in AUDIO_EXTENSIONS)
-        elif path.is_file():
-            files.append(path)
-        else:
-            print(f"ПРЕДУПРЕЖДЕНИЕ: не найдено: {raw}", file=sys.stderr)
+        candidates = [Path(p) for p in glob(raw, recursive=True)] if has_magic(raw) else [Path(raw)]
+        if not candidates:
+            print(f"ПРЕДУПРЕЖДЕНИЕ: ничего не найдено: {raw}", file=sys.stderr)
+            continue
+        for path in candidates:
+            if path.is_dir():
+                files.extend(p for p in path.rglob("*") if p.suffix.lower() in AUDIO_EXTENSIONS)
+            elif path.is_file():
+                files.append(path)
+            else:
+                print(f"ПРЕДУПРЕЖДЕНИЕ: не найдено: {raw}", file=sys.stderr)
     return sorted(set(files), key=str)
 
 

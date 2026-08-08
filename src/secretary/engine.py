@@ -55,23 +55,56 @@ def _default_cache_dir() -> Path:
     return Path.home() / ".cache" / "secretary" / "models"
 
 
-def _model_dir(cache_root: str | None, model_ref: str) -> Path:
+def _model_dir(cache_root: str | None, repo_id: str) -> Path:
     root = Path(cache_root) if cache_root else _default_cache_dir()
-    return root / model_ref.replace("/", "--")
+    return root / repo_id.replace("/", "--")
+
+
+def _split_model_ref(model_ref: str) -> tuple[str, str | None]:
+    """Разделяет ссылку на модель на (repo_id, subfolder).
+
+    Поддержка ссылок вида 'org/name/subfolder' — для pre-quantized моделей
+    (например coriollon/whisper-large-v3-turbo-russian/ct2_int8_float16),
+    где model.bin лежит в подпапке репозитория.
+    """
+    parts = model_ref.split("/")
+    if len(parts) == 3:
+        return "/".join(parts[:2]), parts[2]
+    return model_ref, None
 
 
 def _ensure_model(model_ref: str, cache_root: str | None) -> str:
     """Возвращает локальный путь к модели, скачивая её при необходимости."""
-    target = _model_dir(cache_root, model_ref)
+    repo, subfolder = _split_model_ref(model_ref)
+    target = _model_dir(cache_root, repo)
+
+    if subfolder is not None:
+        model_path = target / subfolder
+        if (model_path / "model.bin").is_file():
+            return str(model_path)
+        target.mkdir(parents=True, exist_ok=True)
+        ModelDownloadBar.label = f"Загрузка модели {model_ref}"
+        try:
+            snapshot_download(
+                repo_id=repo,
+                local_dir=str(target),
+                allow_patterns=f"{subfolder}/*",
+                tqdm_class=ModelDownloadBar,
+                token=os.environ.get("HF_TOKEN") or None,
+            )
+        finally:
+            ModelDownloadBar.label = ""
+        return str(model_path)
+
     if (target / "model.bin").is_file():
         return str(target)
 
-    repo = resolve_model_repo(model_ref) or model_ref
+    resolved = resolve_model_repo(model_ref) or model_ref
     target.mkdir(parents=True, exist_ok=True)
     ModelDownloadBar.label = f"Загрузка модели {model_ref}"
     try:
         snapshot_download(
-            repo_id=repo,
+            repo_id=resolved,
             local_dir=str(target),
             tqdm_class=ModelDownloadBar,
             token=os.environ.get("HF_TOKEN") or None,

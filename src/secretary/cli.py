@@ -52,7 +52,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--diarize",
         action="store_true",
-        help="Диаризация (разметка говорящих). Пока не реализована.",
+        help="Диаризация: метки SPEAKER_nn (бэкенд pyannote, нужен HF_TOKEN)",
+    )
+    parser.add_argument(
+        "--format",
+        choices=("plain", "srt"),
+        default="plain",
+        help="Формат вывода: plain — сплошной текст; srt — строки "
+             "[HH:MM:SS] [SPEAKER_nn] текст с нарезкой длинных реплик на ~10 с",
+    )
+    parser.add_argument(
+        "--prompt",
+        default=None,
+        help="Системный промпт для распознавания, например "
+             "'транскрипция лекции по программированию'",
     )
     parser.add_argument("--out-dir", default=None, help="Папка для результатов (по умолчанию — рядом с файлом)")
     parser.add_argument("--model-cache", default=None, help="Каталог кэша моделей")
@@ -87,10 +100,6 @@ def output_path_for(src: Path, out_dir: str | None) -> Path:
     return src.with_suffix(".txt")
 
 
-def format_text(segments: list[tuple[float, float, str]]) -> str:
-    return " ".join(seg[2].strip() for seg in segments)
-
-
 def main(argv: list[str] | None = None) -> int:
     if sys.platform == "win32":
         for stream in (sys.stdout, sys.stderr):
@@ -101,13 +110,6 @@ def main(argv: list[str] | None = None) -> int:
 
     load_env_file()
     args = build_parser().parse_args(argv)
-
-    if args.diarize:
-        try:
-            create_diarizer()
-        except NotImplementedError as exc:
-            print(f"ОШИБКА: {exc}", file=sys.stderr)
-        return 2
 
     if args.ffmpeg_path:
         os.environ.setdefault("FFMPEG_BINARY", args.ffmpeg_path)
@@ -127,13 +129,31 @@ def main(argv: list[str] | None = None) -> int:
         verbose=args.verbose,
     )
 
+    diarizer = None
+    if args.diarize:
+        try:
+            diarizer = create_diarizer()
+        except Exception as exc:
+            print(f"ОШИБКА инициализации диаризации: {exc}", file=sys.stderr)
+            return 2
+
+    from .merge import format_plain, format_srt
+
     total = len(files)
     ok = 0
     for index, src in enumerate(files, 1):
         print(f"[{index}/{total}] {src}")
         try:
-            result = engine.transcribe(src)
-            text = format_text(result["segments"])
+            result = engine.transcribe(
+                src,
+                initial_prompt=args.prompt,
+                word_timestamps=args.format == "srt",
+            )
+            turns = diarizer.diarize(src) if diarizer else None
+            if args.format == "srt":
+                text = format_srt(result["segments"], result["words"], turns)
+            else:
+                text = format_plain(result["segments"], turns)
             out = output_path_for(src, args.out_dir)
             out.write_text(text, encoding="utf-8")
             if args.verbose:
@@ -141,6 +161,7 @@ def main(argv: list[str] | None = None) -> int:
                     f"  язык: {result['language']} "
                     f"(p={result['language_probability']:.2f}), "
                     f"сегментов: {len(result['segments'])}"
+                    + (f", говорящих: {len({t.speaker for t in turns})}" if turns else "")
                 )
             print(f"  -> {out}")
             ok += 1

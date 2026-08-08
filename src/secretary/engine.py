@@ -6,6 +6,12 @@ import os
 from pathlib import Path
 from typing import Any
 
+# На Windows без Developer Mode os.symlink кидает WinError 1314. huggingface_hub
+# кэширует модели симлинками по умолчанию — выставляем флаг до импорта hub,
+# чтобы файлы копировались, а не линковались (иначе падение при загрузке pyannote).
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS", "1")
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+
 import ctranslate2
 from huggingface_hub import snapshot_download
 from tqdm import tqdm
@@ -107,17 +113,36 @@ class TranscriptionEngine:
             print(f"[модель] {self.model_ref} | device={self.device} compute={self.compute_type}\n  {path}")
         self._model = WhisperModel(path, device=self.device, compute_type=self.compute_type)
 
-    def transcribe(self, audio_path: str | Path) -> dict:
-        """Возвращает {language, language_probability, segments: [(start, end, text)]}."""
+    def transcribe(
+        self,
+        audio_path: str | Path,
+        *,
+        initial_prompt: str | None = None,
+        word_timestamps: bool = False,
+    ) -> dict:
+        """Возвращает {language, language_probability, segments, words}.
+
+        segments — [(start, end, text)]; words — [(start, end, word)] из
+        словесных таймкодов (только при word_timestamps=True).
+        """
         if self._model is None:
             self._load_model()
-        segments, info = self._model.transcribe(
+        segments_iter, info = self._model.transcribe(
             str(audio_path),
             language=self.language,
             vad_filter=self.vad_filter,
+            initial_prompt=initial_prompt,
+            word_timestamps=word_timestamps,
         )
+        segments: list[tuple[float, float, str]] = []
+        words: list[tuple[float, float, str]] = []
+        for segment in segments_iter:
+            segments.append((segment.start, segment.end, segment.text))
+            if word_timestamps and segment.words:
+                words.extend((word.start, word.end, word.word) for word in segment.words)
         return {
             "language": info.language,
             "language_probability": info.language_probability,
-            "segments": [(s.start, s.end, s.text) for s in segments],
+            "segments": segments,
+            "words": words,
         }

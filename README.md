@@ -6,7 +6,7 @@
 - Модель по умолчанию: `large-v3-turbo` (хорошее качество, многоязычная, отлично понимает русский).
 - Модель скачивается автоматически при первом запуске с прогресс-баром (полоса, скорость, ETA).
 - Язык по умолчанию определяется автоматически.
-- Диаризация (метки говорящих) запланирована — флаг `--diarize` пока зарезервирован.
+- Диаризация (метки говорящих): флаг `--diarize`, бэкенд `pyannote/speaker-diarization-community-1`.
 
 ## Установка
 
@@ -14,6 +14,7 @@
 python -m venv .venv
 .venv\Scripts\activate          # Windows
 pip install -r requirements.txt
+pip install -r requirements-dev.txt   # pytest (для тестов)
 pip install -e .                # консольная команда `secretary`
 ```
 
@@ -31,6 +32,15 @@ secretary ./recordings --language ru --out-dir ./transcripts
 
 # модель поменьше для CPU, отключить фильтр тишины
 secretary a.mp3 --model small --compute-type int8 --no-vad
+
+# диаризация: метки говорящих [HH:MM:SS] SPEAKER_nn: текст
+secretary запись.mp3 --diarize
+
+# формат «под SRT» с нарезкой длинных реплик на ~10-сек участки
+secretary лекция.mp3 --diarize --format srt
+
+# системный промпт для распознавания
+secretary лекция.mp3 --prompt "Транскрипция лекции по программированию"
 ```
 
 `python -m secretary ...` работает так же.
@@ -44,11 +54,13 @@ secretary a.mp3 --model small --compute-type int8 --no-vad
 | `--device` | `auto` | `auto` \| `cpu` \| `cuda` |
 | `--compute-type` | `auto` | `auto` (int8 на CPU, float16 на CUDA), `int8`, `float16`, `float32`, ... |
 | `--vad` / `--no-vad` | включён | фильтр тишины |
-| `--diarize` | выкл | диаризация (пока не реализована, выход 2) |
+| `--diarize` | выкл | диаризация: метки `SPEAKER_nn` (бэкенд pyannote community-1, нужен `HF_TOKEN`) |
+| `--format` | `plain` | `plain` — сплошной текст; `srt` — строки `[HH:MM:SS] [SPEAKER_nn] текст` с нарезкой длинных реплик на ~10 с |
+| `--prompt` | — | системный промпт для распознавания (например, «Транскрипция лекции по программированию») |
 | `--out-dir` | рядом с файлом | папка результатов |
 | `--model-cache` | `~/.cache/secretary/models` | каталог моделей (или env `SECRETARY_MODEL_CACHE`) |
 | `--ffmpeg-path` | — | путь к ffmpeg (резерв) |
-| `--verbose` | выкл | подробный лог (язык, число сегментов) |
+| `--verbose` | выкл | подробный лог (язык, число сегментов, говорящих) |
 
 ## ffmpeg
 
@@ -59,16 +71,16 @@ secretary a.mp3 --model small --compute-type int8 --no-vad
 ## Токен Hugging Face (`HF_TOKEN`)
 
 Модели Whisper (faster-whisper) публичные — токен для распознавания не нужен.
-Токен понадобится для **диаризации** (pyannote, в разработке) и для любых закрытых (gated) моделей.
+Токен нужен для **диаризации** (модели pyannote gated).
 
 Где взять:
 1. Войти/зарегистрироваться на [huggingface.co](https://huggingface.co).
 2. [Settings → Access Tokens](https://huggingface.co/settings/tokens) → **New token**,
    роль **Read** → создать и скопировать (`hf_...`).
-3. Одноразово принять условия моделей pyannote — открыть и нажать
+3. Одноразово принять условия модели pyannote — открыть и нажать
    **«Agree and access repository»**:
-   - https://huggingface.co/pyannote/speaker-diarization-3.1
-   - https://huggingface.co/pyannote/segmentation-3.0
+   - https://huggingface.co/pyannote/speaker-diarization-community-1
+   (все компоненты пайплайна лежат внутри этого репозитория)
 
 Как передать (токен не коммитится — см. `.gitignore`):
 
@@ -80,8 +92,15 @@ HF_TOKEN=hf_xxxxxxxxxxxxx
 Или переменная окружения ОС: `$env:HF_TOKEN = "hf_xxx"` (PowerShell), `set HF_TOKEN=hf_xxx` (cmd).
 Файл `.env` подхватывается автоматически при запуске.
 
-## Диаризация (дорожная карта)
+## Диаризация
 
-Бэкенд выбран: `pyannote/speaker-diarization-3.1` (исследование — в `.ai/research.md`, план — в `.ai/plan.md`).
-Схема: сегменты STT → диаризация по той же записи → склейка по таймкодам → метки `SPEAKER_nn`.
-Потребуется токен Hugging Face (`HF_TOKEN`) и принятие условий моделей pyannote.
+Бэкенд: `pyannote/speaker-diarization-community-1` (pyannote.audio 4.x).
+Схема: STT-сегменты → диаризация по той же записи → каждому слову/сегменту
+присваивается говорящий по пересечению таймкодов (используется
+`exclusive_speaker_diarization` — без перекрывающихся реплик, точнее склеивается
+с whisper).
+
+- Модели скачиваются при первом `--diarize` и кэшируются в
+  `~/.cache/secretary/pyannote` (env `PYANNOTE_CACHE`) — сохраняются между сеансами.
+- Паpаметры числа говорящих (`--min-speakers`/`--max-speakers`) намеренно не вынесены
+  в CLI: при пакетной обработке они заранее неизвестны.

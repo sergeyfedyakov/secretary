@@ -33,6 +33,12 @@ output/
 testdata/**/*.txt
 *.wav.tmp
 
+# Тестовые аудиофайлы (локальные сэмплы, в репозиторий не входят)
+testdata/**/*.mp3
+testdata/**/*.m4a
+testdata/**/*.wav
+testdata/**/*.mp4
+
 # IDE / ОС
 .idea/
 .vscode/

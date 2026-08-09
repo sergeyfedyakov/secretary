@@ -5,8 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "secretary"
 version = "0.1.0"
-description = "Пакетная транскрибация аудио в текст (локально, faster-whisper)"
+description = "Batch local audio transcription to text (offline, faster-whisper)"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.9"
 dependencies = [
     "faster-whisper>=1.1.0",

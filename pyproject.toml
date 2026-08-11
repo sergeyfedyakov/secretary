@@ -12,7 +12,7 @@ requires-python = ">=3.9"
 dependencies = [
     "faster-whisper>=1.1.0",
     "tqdm>=4.66",
-    "huggingface_hub>=0.24",
+    "huggingface_hub[hf_xet]>=0.24",
     "pyannote.audio>=4.0",
 ]
 

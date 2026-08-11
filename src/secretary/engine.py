@@ -101,7 +101,7 @@ def _ensure_model(model_ref: str, cache_root: str | None) -> str:
                 local_dir=str(target),
                 allow_patterns=f"{subfolder}/*",
                 tqdm_class=ModelDownloadBar,
-                token=os.environ.get("HF_TOKEN") or None,
+                token=os.environ.get("HF_TOKEN") or False,
             )
         finally:
             ModelDownloadBar.label = ""

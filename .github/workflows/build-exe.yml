@@ -9,6 +9,17 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    strategy:
+      matrix:
+        variant:
+          - name: full
+            artifact: secretary.exe
+            collect: "--collect-all pyannote.audio"
+            exclude: "--exclude-module tensorflow --exclude-module torchvision --exclude-module matplotlib"
+          - name: light
+            artifact: secretary-light.exe
+            collect: ""
+            exclude: "--exclude-module pyannote.audio --exclude-module torch --exclude-module speechbrain --exclude-module torchaudio --exclude-module torchvision --exclude-module lightning --exclude-module onnxruntime --exclude-module tensorflow --exclude-module matplotlib --exclude-module pandas --exclude-module scipy --exclude-module sklearn --exclude-module PIL --exclude-module cv2"
 
     steps:
       - uses: actions/checkout@v4
@@ -24,30 +35,23 @@ jobs:
           pip install -e .
           pip install pyinstaller
 
-      - name: Build exe
+      - name: Build exe (${{ matrix.variant.name }})
         run: |
-          pyinstaller --onefile --name secretary --clean --noconfirm `
+          pyinstaller --onefile --name secretary-${{ matrix.variant.name }} --clean --noconfirm `
             --add-data ".env.example;." `
             --paths src `
             --collect-all faster_whisper `
             --collect-all ctranslate2 `
-            --collect-all huggingface_hub `
             --collect-all tqdm `
             --collect-all av `
-            --collect-all pyannote.audio `
-            --exclude-module tensorflow `
-            --exclude-module torchvision `
-            --exclude-module torchaudio `
-            --exclude-module matplotlib `
-            --exclude-module pandas `
-            --exclude-module scipy `
-            --exclude-module sklearn `
-            --exclude-module PIL `
-            --exclude-module cv2 `
+            --collect-all huggingface_hub `
+            ${{ matrix.variant.collect }} `
+            ${{ matrix.variant.exclude }} `
             secretary_entry.py
+          Rename-Item "dist\secretary-${{ matrix.variant.name }}.exe" "${{ matrix.variant.artifact }}"
 
-      - name: Upload artifact
+      - name: Upload ${{ matrix.variant.name }}
         uses: actions/upload-artifact@v4
         with:
-          name: secretary.exe
-          path: dist/secretary.exe
+          name: ${{ matrix.variant.artifact }}
+          path: dist/${{ matrix.variant.artifact }}

@@ -159,13 +159,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[{index}/{total}] {src}")
         try:
             duration = get_audio_duration(src) if not args.no_progress else None
-            desc = f"  {src.stem}" if duration else None
             pbar = (
                 tqdm(
                     total=duration,
-                    unit="s",
-                    bar_format="{desc}: {percentage:3.0f}%|{bar}| {n:.1f}/{total:.1f}s [{elapsed}<{remaining}]",
-                    desc=desc,
+                    bar_format="  {percentage:3.0f}%|{bar}| [{elapsed}<{remaining}]",
                     dynamic_ncols=True,
                     mininterval=0.5,
                 )

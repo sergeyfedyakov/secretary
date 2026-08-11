@@ -178,7 +178,12 @@ def main(argv: list[str] | None = None) -> int:
             )
             if pbar:
                 pbar.close()
+            if diarizer:
+                print("  Диаризация...", end=" ", flush=True)
             turns = diarizer.diarize(src) if diarizer else None
+            if turns:
+                speakers = len({t.speaker for t in turns})
+                print(f"говорящих: {speakers}")
             if args.format == "srt":
                 text = format_srt(result["segments"], result["words"], turns)
             else:

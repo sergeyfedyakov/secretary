@@ -20,11 +20,18 @@ pip install -r requirements-dev.txt   # pytest (for tests)
 pip install -e .                # console command `secretary`
 ```
 
-After installation you can use `run.cmd` for one-command launch (no manual venv activation):
+After installation you can use `run.cmd` (Windows) or `run.sh` (Linux/macOS) for one-command launch (no manual venv activation):
 
 ```cmd
+:: Windows
 run.cmd recording.mp3
 run.cmd ./recordings --language ru --out-dir ./transcripts
+```
+
+```bash
+# Linux / macOS
+./run.sh recording.mp3
+./run.sh ./recordings --language ru --out-dir ./transcripts
 ```
 
 ## Usage

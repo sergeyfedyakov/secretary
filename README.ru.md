@@ -20,11 +20,18 @@ pip install -r requirements-dev.txt   # pytest (для тестов)
 pip install -e .                # консольная команда `secretary`
 ```
 
-После установки можно запускать одной командой через `run.cmd` (без ручной активации venv):
+После установки можно запускать одной командой через `run.cmd` (Windows) или `run.sh` (Linux/macOS) — без ручной активации venv:
 
 ```cmd
+:: Windows
 run.cmd запись.mp3
 run.cmd ./recordings --language ru --out-dir ./transcripts
+```
+
+```bash
+# Linux / macOS
+./run.sh запись.mp3
+./run.sh ./recordings --language ru --out-dir ./transcripts
 ```
 
 ## Использование

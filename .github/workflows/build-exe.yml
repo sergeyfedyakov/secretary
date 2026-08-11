@@ -19,7 +19,7 @@ jobs:
           - name: light
             artifact: secretary-light.exe
             collect: ""
-            exclude: "--exclude-module pyannote.audio --exclude-module torch --exclude-module speechbrain --exclude-module torchaudio --exclude-module torchvision --exclude-module lightning --exclude-module onnxruntime --exclude-module tensorflow --exclude-module matplotlib --exclude-module pandas --exclude-module scipy --exclude-module sklearn --exclude-module PIL --exclude-module cv2"
+            exclude: "--exclude-module pyannote.audio --exclude-module torch --exclude-module speechbrain --exclude-module torchaudio --exclude-module torchvision --exclude-module lightning --exclude-module tensorflow --exclude-module matplotlib --exclude-module pandas --exclude-module scipy --exclude-module sklearn --exclude-module PIL --exclude-module cv2"
 
     steps:
       - uses: actions/checkout@v4

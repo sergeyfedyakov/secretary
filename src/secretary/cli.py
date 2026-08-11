@@ -164,7 +164,7 @@ def main(argv: list[str] | None = None) -> int:
                 tqdm(
                     total=duration,
                     unit="s",
-                    bar_format="{desc}: {percentage:3.0f}%|{bar}| {n_fmt:.1f}/{total_fmt:.1f}s [{elapsed}<{remaining}]",
+                    bar_format="{desc}: {percentage:3.0f}%|{bar}| {n:.1f}/{total:.1f}s [{elapsed}<{remaining}]",
                     desc=desc,
                     dynamic_ncols=True,
                     mininterval=0.5,

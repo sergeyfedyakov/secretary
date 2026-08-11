@@ -9,9 +9,11 @@ import traceback
 from glob import glob, has_magic
 from pathlib import Path
 
+from tqdm import tqdm
+
 from . import __version__
 from .diarization import create_diarizer
-from .engine import TranscriptionEngine
+from .engine import TranscriptionEngine, get_audio_duration
 from .env import load_env_file
 from .model_registry import AUDIO_EXTENSIONS, DEFAULT_MODEL
 
@@ -77,6 +79,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Путь к бинарю ffmpeg (резерв; декодирование идёт через PyAV, обычно не нужен)",
     )
     parser.add_argument("--verbose", action="store_true", help="Подробный лог")
+    parser.add_argument(
+        "--no-progress",
+        action="store_true",
+        help="Не показывать прогресс-бар транскрибации (полезно в CI/логах)",
+    )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser
 
@@ -151,11 +158,28 @@ def main(argv: list[str] | None = None) -> int:
     for index, src in enumerate(files, 1):
         print(f"[{index}/{total}] {src}")
         try:
+            duration = get_audio_duration(src) if not args.no_progress else None
+            desc = f"  {src.stem}" if duration else None
+            pbar = (
+                tqdm(
+                    total=duration,
+                    unit="s",
+                    bar_format="{desc}: {percentage:3.0f}%|{bar}| {n_fmt:.1f}/{total_fmt:.1f}s [{elapsed}<{remaining}]",
+                    desc=desc,
+                    dynamic_ncols=True,
+                    mininterval=0.5,
+                )
+                if duration
+                else None
+            )
             result = engine.transcribe(
                 src,
                 initial_prompt=args.prompt,
                 word_timestamps=args.format == "srt",
+                progress_bar=pbar,
             )
+            if pbar:
+                pbar.close()
             turns = diarizer.diarize(src) if diarizer else None
             if args.format == "srt":
                 text = format_srt(result["segments"], result["words"], turns)

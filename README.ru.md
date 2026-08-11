@@ -20,6 +20,13 @@ pip install -r requirements-dev.txt   # pytest (для тестов)
 pip install -e .                # консольная команда `secretary`
 ```
 
+После установки можно запускать одной командой через `run.cmd` (без ручной активации venv):
+
+```cmd
+run.cmd запись.mp3
+run.cmd ./recordings --language ru --out-dir ./transcripts
+```
+
 ## Использование
 
 ```bash
@@ -66,6 +73,45 @@ secretary запись.mp3 --model coriollon/whisper-large-v3-turbo-russian/ct2-
 `int8` (проверено: работает с `ct2_int8_float16`); на CUDA для этого варианта
 указывайте `--compute-type int8_float16`, как в карточке модели.
 
+## Оффлайн-установка моделей
+
+Если целевая машина без интернета — скачайте модели на машине с доступом
+и перенесите папку кэша.
+
+### Способ 1: huggingface-cli (рекомендуется)
+
+```bash
+pip install huggingface_hub
+# Базовая модель Whisper (3 ГБ)
+huggingface-cli download Systran/faster-whisper-large-v3-turbo --local-dir ./models/faster-whisper-large-v3-turbo
+
+# Русский fine-tune с пунктуацией (782 МБ)
+huggingface-cli download coriollon/whisper-large-v3-turbo-russian --local-dir ./models/whisper-large-v3-turbo-russian --include "ct2_int8_float16/*"
+
+# Модель диаризации (нужен HF_TOKEN, ~400 МБ)
+huggingface-cli download pyannote/speaker-diarization-community-1 --local-dir ./models/speaker-diarization --token hf_xxx
+```
+
+Перенесите папку `./models/` на целевую машину и укажите путь:
+
+```cmd
+set SECRETARY_MODEL_CACHE=D:\models
+secretary запись.mp3 --model D:\models\faster-whisper-large-v3-turbo
+```
+
+### Способ 2: через первый запуск на машине с интернетом
+
+Запустите `secretary` один раз на машине с интернетом — модель скачается
+в `~/.cache/secretary/models/`. Скопируйте эту папку на целевую машину
+в то же расположение, либо укажите `--model-cache` / `SECRETARY_MODEL_CACHE`.
+
+### Способ 3: готовый exe + модели отдельно
+
+Скачайте `secretary.exe` из [GitHub Releases](../../releases). Модели в exe
+не вшиты — при первом запуске они скачаются автоматически, либо перенесите
+их вручную одним из способов выше. Переменная `SECRETARY_MODEL_CACHE` работает
+и с exe-версией.
+
 ## Опции
 
 | Опция | По умолчанию | Описание |
@@ -73,7 +119,7 @@ secretary запись.mp3 --model coriollon/whisper-large-v3-turbo-russian/ct2-
 | `--model` | `large-v3-turbo` | алиас (`tiny`, `base`, `small`, `medium`, `large-v3`, `large-v3-turbo`), HF-репо, `репо/подпапка` или локальный путь |
 | `--language` | авто | код языка (`ru`, `en`, ...) |
 | `--device` | `auto` | `auto` \| `cpu` \| `cuda` |
-| `--compute-type` | `auto` | `auto` (int8 на CPU, float16 на CUDA), `int8`, `float16`, `float32`, ... |
+| `--compute-type` | `auto` | `auto` (int8 на CPU, float16 на CUDA), `int8`, `float16`, `int8_float16`, `float32`, ... |
 | `--vad` / `--no-vad` | включён | фильтр тишины |
 | `--diarize` | выкл | диаризация: метки `SPEAKER_nn` (бэкенд pyannote community-1, нужен `HF_TOKEN`) |
 | `--format` | `plain` | `plain` — сплошной текст; `srt` — строки `[HH:MM:SS] [SPEAKER_nn] текст` с нарезкой длинных реплик на ~10 с |
@@ -82,6 +128,7 @@ secretary запись.mp3 --model coriollon/whisper-large-v3-turbo-russian/ct2-
 | `--model-cache` | `~/.cache/secretary/models` | каталог моделей (или env `SECRETARY_MODEL_CACHE`) |
 | `--ffmpeg-path` | — | путь к ffmpeg (резерв) |
 | `--verbose` | выкл | подробный лог (язык, число сегментов, говорящих) |
+| `--no-progress` | выкл | не показывать прогресс-бар транскрибации (полезно в CI/логах) |
 
 ## ffmpeg
 

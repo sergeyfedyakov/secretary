@@ -19,6 +19,17 @@ from tqdm import tqdm
 from .model_registry import DEFAULT_MODEL, resolve_model_repo
 
 
+def get_audio_duration(audio_path: str | Path) -> float:
+    """Возвращает длительность аудиофайла в секундах через PyAV."""
+    import av
+
+    with av.open(str(audio_path)) as container:
+        audio = next(s for s in container.streams if s.type == "audio")
+        if audio.duration:
+            return float(audio.duration * audio.time_base)
+        return float(container.duration * av.time_base)
+
+
 class ModelDownloadBar(tqdm):
     """Прогресс-бар загрузки модели: полоса, скорость (MB/s), ETA."""
 
@@ -152,11 +163,15 @@ class TranscriptionEngine:
         *,
         initial_prompt: str | None = None,
         word_timestamps: bool = False,
+        progress_bar: tqdm | None = None,
     ) -> dict:
         """Возвращает {language, language_probability, segments, words}.
 
         segments — [(start, end, text)]; words — [(start, end, word)] из
         словесных таймкодов (только при word_timestamps=True).
+
+        Если передан progress_bar (tqdm с total=длительность_в_секундах),
+        обновляет его по мере поступления сегментов.
         """
         if self._model is None:
             self._load_model()
@@ -173,6 +188,12 @@ class TranscriptionEngine:
             segments.append((segment.start, segment.end, segment.text))
             if word_timestamps and segment.words:
                 words.extend((word.start, word.end, word.word) for word in segment.words)
+            if progress_bar is not None:
+                progress_bar.n = min(segment.end, progress_bar.total)
+                progress_bar.refresh()
+        if progress_bar is not None:
+            progress_bar.n = progress_bar.total
+            progress_bar.refresh()
         return {
             "language": info.language,
             "language_probability": info.language_probability,

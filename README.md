@@ -20,6 +20,13 @@ pip install -r requirements-dev.txt   # pytest (for tests)
 pip install -e .                # console command `secretary`
 ```
 
+After installation you can use `run.cmd` for one-command launch (no manual venv activation):
+
+```cmd
+run.cmd recording.mp3
+run.cmd ./recordings --language ru --out-dir ./transcripts
+```
+
 ## Usage
 
 ```bash
@@ -66,6 +73,45 @@ Only the selected subfolder is downloaded. `--compute-type` is forced to `int8`
 on CPU automatically (verified to work with `ct2_int8_float16`); on CUDA use
 `--compute-type int8_float16` for that variant, as stated in the model card.
 
+## Offline model installation
+
+If the target machine has no internet, download models on a machine with access
+and transfer the cache folder.
+
+### Method 1: huggingface-cli (recommended)
+
+```bash
+pip install huggingface_hub
+# Base Whisper model (~3 GB)
+huggingface-cli download Systran/faster-whisper-large-v3-turbo --local-dir ./models/faster-whisper-large-v3-turbo
+
+# Russian fine-tune with punctuation (782 MB)
+huggingface-cli download coriollon/whisper-large-v3-turbo-russian --local-dir ./models/whisper-large-v3-turbo-russian --include "ct2_int8_float16/*"
+
+# Diarization model (HF_TOKEN required, ~400 MB)
+huggingface-cli download pyannote/speaker-diarization-community-1 --local-dir ./models/speaker-diarization --token hf_xxx
+```
+
+Transfer the `./models/` folder to the target machine and set the path:
+
+```cmd
+set SECRETARY_MODEL_CACHE=D:\models
+secretary recording.mp3 --model D:\models\faster-whisper-large-v3-turbo
+```
+
+### Method 2: first run on an internet-connected machine
+
+Run `secretary` once on a machine with internet — the model downloads to
+`~/.cache/secretary/models/`. Copy that folder to the target machine
+at the same location, or specify `--model-cache` / `SECRETARY_MODEL_CACHE`.
+
+### Method 3: pre-built exe + models separately
+
+Download `secretary.exe` from [GitHub Releases](../../releases). Models are not
+bundled into the exe — they are downloaded on first run, or transferred manually
+using one of the methods above. The `SECRETARY_MODEL_CACHE` variable works with
+the exe version as well.
+
 ## Options
 
 | Option | Default | Description |
@@ -82,6 +128,7 @@ on CPU automatically (verified to work with `ct2_int8_float16`); on CUDA use
 | `--model-cache` | `~/.cache/secretary/models` | model cache directory (or env `SECRETARY_MODEL_CACHE`) |
 | `--ffmpeg-path` | — | path to ffmpeg (fallback) |
 | `--verbose` | off | verbose log (language, number of segments/speakers) |
+| `--no-progress` | off | hide transcription progress bar (useful in CI/logs) |
 
 ## ffmpeg
 

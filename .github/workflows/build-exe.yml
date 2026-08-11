@@ -1,0 +1,45 @@
+name: Build secretary.exe
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        working-directory: secretary
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+          pip install pyinstaller
+
+      - name: Build exe
+        working-directory: secretary
+        run: |
+          pyinstaller --onefile --name secretary --clean --noconfirm `
+            --add-data ".env.example;." `
+            --hidden-import faster_whisper `
+            --hidden-import pyannote.audio `
+            --hidden-import huggingface_hub `
+            --hidden-import av `
+            --hidden-import tqdm `
+            --hidden-import ctranslate2 `
+            src/secretary/__main__.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: secretary.exe
+          path: secretary/dist/secretary.exe

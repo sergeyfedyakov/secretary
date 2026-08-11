@@ -50,12 +50,15 @@ jobs:
             ${{ matrix.variant.exclude }} `
             secretary_entry.py
           Rename-Item "dist\secretary-${{ matrix.variant.name }}.exe" "${{ matrix.variant.artifact }}"
+          Copy-Item ".env.example" "dist\.env.sample"
 
       - name: Upload ${{ matrix.variant.name }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.variant.artifact }}
-          path: dist/${{ matrix.variant.artifact }}
+          path: |
+            dist/${{ matrix.variant.artifact }}
+            dist/.env.sample
 
   release:
     needs: build

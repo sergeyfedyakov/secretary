@@ -10,6 +10,17 @@
 - Язык по умолчанию определяется автоматически.
 - Диаризация (метки говорящих): флаг `--diarize`, бэкенд `pyannote/speaker-diarization-community-1`.
 
+## Готовые сборки (Windows)
+
+Скачай готовый exe из [GitHub Releases](https://github.com/sergeyfedyakov/secretary/releases) — Python не нужен:
+
+| Файл | Размер | Диаризация |
+|---|---|---|
+| `secretary-light.exe` | ~100 МБ | нет |
+| `secretary.exe` | ~300 МБ | ✓ |
+
+Модели скачиваются при первом запуске автоматически. Для диаризации положи `.env` с токеном рядом с exe (см. шаблон `.env.sample` в релизе) или задай переменную окружения `HF_TOKEN`.
+
 ## Установка
 
 ```bash

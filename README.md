@@ -8,6 +8,17 @@ Batch audio transcription to text — fully local, no cloud.
 - Language is auto-detected by default.
 - Speaker diarization (`--diarize`): `pyannote/speaker-diarization-community-1` backend.
 
+## Pre-built binaries (Windows)
+
+Grab a ready-to-run exe from [GitHub Releases](https://github.com/sergeyfedyakov/secretary/releases) — no Python required:
+
+| File | Size | Diarization |
+|---|---|---|
+| `secretary-light.exe` | ~100 MB | no |
+| `secretary.exe` | ~300 MB | ✓ |
+
+Models are downloaded automatically on first run. For diarization, drop an `.env` file with your token next to the exe (use `.env.sample` from the release as a template), or set the `HF_TOKEN` environment variable.
+
 [Русская версия](README.ru.md)
 
 ## Installation

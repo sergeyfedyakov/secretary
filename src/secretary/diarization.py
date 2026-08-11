@@ -46,6 +46,9 @@ class SpeakerTurn:
 class Diarizer:
     """Контракт диаризатора: принимает аудио, возвращает интервалы говорящих."""
 
+    def warmup(self) -> None:
+        """Предзагрузить модель (скачать при необходимости). По умолчанию — no-op."""
+
     def diarize(self, audio_path: str | Path) -> list[SpeakerTurn]:
         raise NotImplementedError
 
@@ -95,6 +98,14 @@ class PyannoteDiarizer(Diarizer):
             )
         finally:
             ModelDownloadBar.label = ""
+
+    def warmup(self) -> None:
+        """Предзагружает модель диаризации (скачивает при необходимости).
+
+        Вызов до начала обработки файлов — чтобы ошибка токена или загрузки
+        всплыла сразу, а не после долгой транскрибации первого файла.
+        """
+        self._load()
 
     def diarize(self, audio_path: str | Path) -> list[SpeakerTurn]:
         self._load()

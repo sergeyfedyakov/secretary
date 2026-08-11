@@ -147,6 +147,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.diarize:
         try:
             diarizer = create_diarizer()
+            diarizer.warmup()
         except Exception as exc:
             print(f"ОШИБКА инициализации диаризации: {exc}", file=sys.stderr)
             return 2

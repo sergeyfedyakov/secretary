@@ -19,14 +19,12 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        working-directory: secretary
         run: |
           pip install -r requirements.txt
           pip install -e .
           pip install pyinstaller
 
       - name: Build exe
-        working-directory: secretary
         run: |
           pyinstaller --onefile --name secretary --clean --noconfirm `
             --add-data ".env.example;." `
@@ -36,10 +34,11 @@ jobs:
             --hidden-import av `
             --hidden-import tqdm `
             --hidden-import ctranslate2 `
-            src/secretary/__main__.py
+            --paths src `
+            -m secretary
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: secretary.exe
-          path: secretary/dist/secretary.exe
+          path: dist/secretary.exe

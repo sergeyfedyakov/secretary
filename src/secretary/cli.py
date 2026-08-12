@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sys
+import time
 import traceback
+from datetime import datetime, timezone
 from glob import glob, has_magic
 from pathlib import Path
 
@@ -85,6 +88,13 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Не показывать прогресс-бар транскрибации (полезно в CI/логах)",
     )
+    parser.add_argument(
+        "--newer-than",
+        default=None,
+        metavar="ДАТА",
+        help="Только файлы новее указанной даты: '2026-08-10', "
+             "'2026-08-10T14:30', или относительное '2d'/'6h'/'30m'",
+    )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser
 
@@ -115,6 +125,31 @@ def output_path_for(src: Path, out_dir: str | None) -> Path:
     return src.with_suffix(".txt")
 
 
+def _parse_time_filter(value: str) -> float:
+    """Парсит аргумент --newer-than в timestamp (секунды с эпохи)."""
+    rel = re.fullmatch(r"(\d+)\s*([hmd])", value)
+    if rel:
+        num = int(rel.group(1))
+        unit = rel.group(2)
+        seconds = {"h": 3600, "m": 60, "d": 86400}[unit]
+        return time.time() - num * seconds
+    try:
+        dt = datetime.fromisoformat(value)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.timestamp()
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"Неверный формат даты: {value!r}. "
+            f"Ожидается: '2026-08-10', '2026-08-10T14:30', '2d', '6h', '30m'."
+        )
+
+
+def _filter_by_mtime(files: list[Path], min_mtime: float) -> list[Path]:
+    """Оставляет файлы с mtime >= min_mtime."""
+    return [f for f in files if f.stat().st_mtime >= min_mtime]
+
+
 def main(argv: list[str] | None = None) -> int:
     if sys.platform == "win32":
         for stream in (sys.stdout, sys.stderr):
@@ -130,6 +165,16 @@ def main(argv: list[str] | None = None) -> int:
         os.environ.setdefault("FFMPEG_BINARY", args.ffmpeg_path)
 
     files = collect_files(args.inputs)
+    if args.newer_than:
+        try:
+            since = _parse_time_filter(args.newer_than)
+        except argparse.ArgumentTypeError as exc:
+            print(f"ОШИБКА: {exc}", file=sys.stderr)
+            return 1
+        files = _filter_by_mtime(files, since)
+        if not files:
+            print("ОШИБКА: нет файлов новее указанной даты.", file=sys.stderr)
+            return 1
     if not files:
         print("ОШИБКА: не найдено ни одного аудиофайла по заданным путям.", file=sys.stderr)
         return 1

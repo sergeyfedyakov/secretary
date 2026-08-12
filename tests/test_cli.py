@@ -1,11 +1,12 @@
 """Тесты сбора файлов (collect_files): файлы, папки, glob-паттерны."""
 
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from secretary.cli import collect_files
+from secretary.cli import collect_files, _filter_by_mtime, _parse_time_filter
 
 
 def test_single_file(tmp_path):
@@ -52,3 +53,32 @@ def test_missing_and_empty_glob(tmp_path, capsys):
     err = capsys.readouterr().err
     assert files == []
     assert "не найдено" in err
+
+
+def test_filter_by_mtime_passes_recent(tmp_path):
+    f = tmp_path / "new.mp3"
+    f.write_bytes(b"")
+    assert _filter_by_mtime([f], 0) == [f]
+
+
+def test_filter_by_mtime_drops_old(tmp_path):
+    f = tmp_path / "old.mp3"
+    f.write_bytes(b"")
+    assert _filter_by_mtime([f], time.time() + 3600) == []
+
+
+def test_parse_time_filter_relative_hours():
+    expected = time.time() - 6 * 3600
+    result = _parse_time_filter("6h")
+    assert abs(result - expected) < 1
+
+
+def test_parse_time_filter_relative_days():
+    expected = time.time() - 2 * 86400
+    result = _parse_time_filter("2d")
+    assert abs(result - expected) < 1
+
+
+def test_parse_time_filter_iso_date():
+    result = _parse_time_filter("2026-08-10")
+    assert result == _parse_time_filter("2026-08-10T00:00")

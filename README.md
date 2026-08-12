@@ -147,6 +147,7 @@ the exe version as well.
 | `--ffmpeg-path` | — | path to ffmpeg (fallback) |
 | `--verbose` | off | verbose log (language, number of segments/speakers) |
 | `--no-progress` | off | hide transcription progress bar (useful in CI/logs) |
+| `--newer-than` | — | only files newer than: `2026-08-10`, `2026-08-10T14:30`, `2d`, `6h`, `30m` |
 
 ## ffmpeg
 

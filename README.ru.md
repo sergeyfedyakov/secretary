@@ -134,7 +134,7 @@ secretary запись.mp3 --model D:\models\faster-whisper-large-v3-turbo
 
 | Опция | По умолчанию | Описание |
 |---|---|---|
-| `--model` | `large-v3-turbo` | алиас (`tiny`, `base`, `small`, `medium`, `large-v3`, `large-v3-turbo`), HF-репо, `репо/подпапка` или локальный путь |
+| `--model` | `large-v3-turbo` | алиас (`tiny`, `base`, `small`, `medium`, `large-v3`, `large-v3-turbo`), HF-репо, `репо/подпапка` или локальный путь. Также через env `SECRETARY_MODEL` |
 | `--language` | авто | код языка (`ru`, `en`, ...) |
 | `--device` | `auto` | `auto` \| `cpu` \| `cuda` |
 | `--compute-type` | `auto` | `auto` (int8 на CPU, float16 на CUDA), `int8`, `float16`, `int8_float16`, `float32`, ... |

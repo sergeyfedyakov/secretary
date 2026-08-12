@@ -134,7 +134,7 @@ the exe version as well.
 
 | Option | Default | Description |
 |---|---|---|
-| `--model` | `large-v3-turbo` | alias (`tiny`, `base`, `small`, `medium`, `large-v3`, `large-v3-turbo`), an HF repo, `repo/subfolder`, or a local path |
+| `--model` | `large-v3-turbo` | alias (`tiny`, `base`, `small`, `medium`, `large-v3`, `large-v3-turbo`), an HF repo, `repo/subfolder`, or a local path. Also via env `SECRETARY_MODEL` |
 | `--language` | auto | language code (`ru`, `en`, ...) |
 | `--device` | `auto` | `auto` \| `cpu` \| `cuda` |
 | `--compute-type` | `auto` | `auto` (int8 on CPU, float16 on CUDA), `int8`, `float16`, `float32`, ... |

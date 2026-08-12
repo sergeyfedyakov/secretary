@@ -32,9 +32,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--model",
-        default=DEFAULT_MODEL,
+        default=os.environ.get("SECRETARY_MODEL", DEFAULT_MODEL),
         help=f"Модель: алиас (tiny/base/small/medium/large-v3/large-v3-turbo), "
-             f"HF-репо или локальный путь. По умолчанию: {DEFAULT_MODEL}.",
+             f"HF-репо или локальный путь. По умолчанию: {DEFAULT_MODEL} "
+             f"(env SECRETARY_MODEL).",
     )
     parser.add_argument(
         "--language",

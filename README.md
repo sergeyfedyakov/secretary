@@ -134,20 +134,21 @@ the exe version as well.
 
 | Option | Default | Description |
 |---|---|---|
-| `--model` | `large-v3-turbo` | alias (`tiny`, `base`, `small`, `medium`, `large-v3`, `large-v3-turbo`), an HF repo, `repo/subfolder`, or a local path. Also via env `SECRETARY_MODEL` |
-| `--language` | auto | language code (`ru`, `en`, ...) |
+| `-m`, `--model` | `large-v3-turbo` | alias (`tiny`, `base`, `small`, `medium`, `large-v3`, `large-v3-turbo`), an HF repo, `repo/subfolder`, or a local path. Also via env `SECRETARY_MODEL` |
+| `-l`, `--language` | auto | language code (`ru`, `en`, ...) |
 | `--device` | `auto` | `auto` \| `cpu` \| `cuda` |
 | `--compute-type` | `auto` | `auto` (int8 on CPU, float16 on CUDA), `int8`, `float16`, `float32`, ... |
 | `--vad` / `--no-vad` | enabled | silence filter |
 | `--diarize` | off | speaker diarization: `SPEAKER_nn` labels (pyannote community-1 backend, requires `HF_TOKEN`) |
-| `--format` | `plain` | `plain` — continuous text; `srt` — `[HH:MM:SS] [SPEAKER_nn] text` lines, long utterances split into ~10s chunks |
+| `-f`, `--format` | `plain` | `plain` — continuous text; `srt` — `[HH:MM:SS] [SPEAKER_nn] text` lines, long utterances split into ~10s chunks |
 | `--prompt` | — | system prompt for recognition (e.g. "Transcription of a programming lecture") |
-| `--out-dir` | next to the file | output folder |
+| `-o`, `--out-dir` | next to the file | output folder |
 | `--model-cache` | `~/.cache/secretary/models` | model cache directory (or env `SECRETARY_MODEL_CACHE`) |
 | `--ffmpeg-path` | — | path to ffmpeg (fallback) |
-| `--verbose` | off | verbose log (language, number of segments/speakers) |
-| `--no-progress` | off | hide transcription progress bar (useful in CI/logs) |
-| `--newer-than` | — | only files newer than: `2026-08-10`, `2026-08-10T14:30`, `2d`, `6h`, `30m` |
+| `-v`, `--verbose` | off | verbose log (language, number of segments/speakers) |
+| `-q`, `--no-progress` | off | hide transcription progress bar (useful in CI/logs) |
+| `-n`, `--newer-than` | — | only files newer than: `2026-08-10`, `2026-08-10T14:30`, `2d`, `6h`, `30m` |
+| `-?`, `--help` | — | show help and exit (also when run without arguments) |
 
 ## ffmpeg
 

@@ -25,6 +25,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="secretary",
         description="Пакетная транскрибация аудио в текст (локально, faster-whisper).",
+        add_help=False,
+    )
+    parser.add_argument(
+        "-?", "--help",
+        action="help",
+        help="Показать справку и выйти",
     )
     parser.add_argument(
         "inputs",
@@ -34,14 +40,14 @@ def build_parser() -> argparse.ArgumentParser:
              "например \"D:\\записи\\*.mp4\"",
     )
     parser.add_argument(
-        "--model",
+        "-m", "--model",
         default=os.environ.get("SECRETARY_MODEL", DEFAULT_MODEL),
         help=f"Модель: алиас (tiny/base/small/medium/large-v3/large-v3-turbo), "
              f"HF-репо или локальный путь. По умолчанию: {DEFAULT_MODEL} "
              f"(env SECRETARY_MODEL).",
     )
     parser.add_argument(
-        "--language",
+        "-l", "--language",
         default=None,
         help="Код языка (ru, en, ...). По умолчанию — автоопределение.",
     )
@@ -63,7 +69,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Диаризация: метки SPEAKER_nn (бэкенд pyannote, нужен HF_TOKEN)",
     )
     parser.add_argument(
-        "--format",
+        "-f", "--format",
         choices=("plain", "srt"),
         default="plain",
         help="Формат вывода: plain — сплошной текст; srt — строки "
@@ -75,21 +81,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="Системный промпт для распознавания, например "
              "'транскрипция лекции по программированию'",
     )
-    parser.add_argument("--out-dir", default=None, help="Папка для результатов (по умолчанию — рядом с файлом)")
+    parser.add_argument(
+        "-o", "--out-dir",
+        default=None,
+        help="Папка для результатов (по умолчанию — рядом с файлом)",
+    )
     parser.add_argument("--model-cache", default=None, help="Каталог кэша моделей")
     parser.add_argument(
         "--ffmpeg-path",
         default=None,
         help="Путь к бинарю ffmpeg (резерв; декодирование идёт через PyAV, обычно не нужен)",
     )
-    parser.add_argument("--verbose", action="store_true", help="Подробный лог")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Подробный лог")
     parser.add_argument(
-        "--no-progress",
+        "-q", "--no-progress",
         action="store_true",
         help="Не показывать прогресс-бар транскрибации (полезно в CI/логах)",
     )
     parser.add_argument(
-        "--newer-than",
+        "-n", "--newer-than",
         default=None,
         metavar="ДАТА",
         help="Только файлы новее указанной даты: '2026-08-10', "
@@ -159,7 +169,13 @@ def main(argv: list[str] | None = None) -> int:
                 pass
 
     load_env_file()
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    if argv is None:
+        argv = sys.argv[1:]
+    if not argv:
+        parser.print_help()
+        return 0
+    args = parser.parse_args(argv)
 
     if args.ffmpeg_path:
         os.environ.setdefault("FFMPEG_BINARY", args.ffmpeg_path)

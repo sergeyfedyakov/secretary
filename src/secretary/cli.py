@@ -9,7 +9,7 @@ import sys
 import time
 import traceback
 from datetime import datetime, timezone
-from glob import glob, has_magic
+from glob import escape, glob, has_magic
 from pathlib import Path
 
 from tqdm import tqdm
@@ -109,11 +109,27 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _expand_input(raw: str) -> list[Path]:
+    """Разворачивает один аргумент CLI в список путей.
+
+    Сначала проверяем литеральный путь (файл/папка) — это корректно обрабатывает
+    имена с квадратными скобками, которые glob трактует как класс символов.
+    Затем — glob-паттерн: экранируем спецсимволы, оставляя * и ? подстановочными.
+    """
+    literal = Path(raw)
+    if literal.is_file() or literal.is_dir():
+        return [literal]
+    if not has_magic(raw):
+        return [literal]
+    pattern = escape(raw).replace("[*]", "*").replace("[?]", "?")
+    return [Path(p) for p in glob(pattern, recursive=True)]
+
+
 def collect_files(inputs: list[str]) -> list[Path]:
     """Собирает аудиофайлы из путей/папок/glob-паттернов (рекурсивно)."""
     files: list[Path] = []
     for raw in inputs:
-        candidates = [Path(p) for p in glob(raw, recursive=True)] if has_magic(raw) else [Path(raw)]
+        candidates = _expand_input(raw)
         if not candidates:
             print(f"ПРЕДУПРЕЖДЕНИЕ: ничего не найдено: {raw}", file=sys.stderr)
             continue

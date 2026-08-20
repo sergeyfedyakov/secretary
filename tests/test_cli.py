@@ -47,6 +47,29 @@ def test_wildcard_nested(tmp_path):
     assert collect_files([pattern]) == sorted([a, b], key=str)
 
 
+def test_folder_with_brackets(tmp_path):
+    folder = tmp_path / "LostFilm.TV [MP4]"
+    folder.mkdir()
+    a = folder / "one.mp4"
+    b = folder / "two.mp4"
+    a.write_bytes(b"")
+    b.write_bytes(b"")
+    assert collect_files([str(folder)]) == sorted([a, b], key=str)
+
+
+def test_glob_in_folder_with_brackets(tmp_path):
+    folder = tmp_path / "LostFilm.TV [MP4]"
+    folder.mkdir()
+    a = folder / "one.mp4"
+    b = folder / "two.mp4"
+    c = folder / "skip.mp3"
+    a.write_bytes(b"")
+    b.write_bytes(b"")
+    c.write_bytes(b"")
+    pattern = str(folder / "*.mp4")
+    assert collect_files([pattern]) == sorted([a, b], key=str)
+
+
 def test_missing_and_empty_glob(tmp_path, capsys):
     missing = tmp_path / "nope.mp3"
     files = collect_files([str(missing), str(tmp_path / "*.zzz")])

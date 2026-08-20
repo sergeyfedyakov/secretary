@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "secretary"
-version = "0.6.0"
+version = "0.6.4"
 description = "Batch local audio transcription to text (offline, faster-whisper)"
 readme = "README.md"
 license = "MIT"

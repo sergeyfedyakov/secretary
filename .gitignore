@@ -48,3 +48,6 @@ testdata/**/*.mp4
 *.sln
 .DS_Store
 Thumbs.db
+
+# Локальная память агента
+.ai/

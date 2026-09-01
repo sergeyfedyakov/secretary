@@ -7,6 +7,7 @@ Batch audio transcription to text — fully local, no cloud.
 - The model is downloaded automatically on the first run, with a progress bar (speed, ETA).
 - Language is auto-detected by default.
 - Speaker diarization (`--diarize`): `pyannote/speaker-diarization-community-1` backend.
+  Installed separately (`requirements-diarization.txt`), not part of the base install.
 
 ## Pre-built binaries (Windows)
 
@@ -29,6 +30,14 @@ python -m venv .venv
 pip install -r requirements.txt
 pip install -r requirements-dev.txt   # pytest (for tests)
 pip install -e .                # console command `secretary`
+```
+
+Diarization (`--diarize`) is optional and **not installed by default**,
+because it pulls in heavy torch/pyannote. Install it separately if needed:
+
+```bash
+pip install -r requirements-diarization.txt
+# or: pip install -e .[diarization]
 ```
 
 After installation you can use `run.cmd` (Windows) or `run.sh` (Linux/macOS) for one-command launch (no manual venv activation):
@@ -187,6 +196,10 @@ Backend: `pyannote/speaker-diarization-community-1` (pyannote.audio 4.x).
 How it works: STT segments → diarization of the same recording → every word/segment
 gets a speaker by timestamp overlap (`exclusive_speaker_diarization` — no
 overlapping utterances, more accurate alignment with whisper).
+
+Requires the optional diarization package (pulls in torch):
+`pip install -r requirements-diarization.txt` (or `pip install -e .[diarization]`).
+Without it `--diarize` fails with a clear message pointing to this command.
 
 - Models are downloaded on the first `--diarize` run and cached in
   `~/.cache/secretary/pyannote` (env `PYANNOTE_CACHE`) — kept between sessions.

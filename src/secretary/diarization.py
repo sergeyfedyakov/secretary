@@ -72,9 +72,16 @@ class PyannoteDiarizer(Diarizer):
                 "Для диаризации нужен HF_TOKEN (см. .env): модели pyannote gated, "
                 "плюс требуется вручную принять условия на huggingface.co."
             )
+        try:
+            from pyannote.audio import Pipeline
+        except ImportError:
+            raise RuntimeError(
+                "Диаризация не установлена. Установите её отдельно: "
+                "pip install -r requirements-diarization.txt "
+                "(или pip install -e .[diarization])."
+            ) from None
         cache_dir = _pyannote_cache_dir()
         self._ensure_model(cache_dir)
-        from pyannote.audio import Pipeline
 
         self._pipeline = Pipeline.from_pretrained(
             PIPELINE_REPO, token=self.token, cache_dir=cache_dir

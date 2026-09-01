@@ -9,6 +9,7 @@
 - Модель скачивается автоматически при первом запуске с прогресс-баром (полоса, скорость, ETA).
 - Язык по умолчанию определяется автоматически.
 - Диаризация (метки говорящих): флаг `--diarize`, бэкенд `pyannote/speaker-diarization-community-1`.
+  Устанавливается отдельно (`requirements-diarization.txt`), в базовую установку не входит.
 
 ## Готовые сборки (Windows)
 
@@ -29,6 +30,14 @@ python -m venv .venv
 pip install -r requirements.txt
 pip install -r requirements-dev.txt   # pytest (для тестов)
 pip install -e .                # консольная команда `secretary`
+```
+
+Диаризация (флаг `--diarize`) — опциональна и по умолчанию **не устанавливается**,
+т.к. тянет тяжёлый torch/pyannote. Ставится отдельно, если нужна:
+
+```bash
+pip install -r requirements-diarization.txt
+# или: pip install -e .[diarization]
 ```
 
 После установки можно запускать одной командой через `run.cmd` (Windows) или `run.sh` (Linux/macOS) — без ручной активации venv:
@@ -187,6 +196,10 @@ HF_TOKEN=hf_xxxxxxxxxxxxx
 присваивается говорящий по пересечению таймкодов (используется
 `exclusive_speaker_diarization` — без перекрывающихся реплик, точнее склеивается
 с whisper).
+
+Нужен установленный пакет диаризации (тянет torch):
+`pip install -r requirements-diarization.txt` (или `pip install -e .[diarization]`).
+Без него `--diarize` выдаст понятную ошибку с этой инструкцией.
 
 - Модели скачиваются при первом `--diarize` и кэшируются в
   `~/.cache/secretary/pyannote` (env `PYANNOTE_CACHE`) — сохраняются между сеансами.

@@ -1,0 +1,4 @@
+# Опциональный бэкенд OpenVINO (Intel GPU/XPU, NPU, CPU).
+# Установка: pip install -r requirements-openvino.txt  (или pip install -e .[openvino])
+openvino-genai>=2026.4.1
+openvino-tokenizers>=2026.4.1

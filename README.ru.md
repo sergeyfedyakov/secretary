@@ -10,6 +10,9 @@
 - Язык по умолчанию определяется автоматически.
 - Диаризация (метки говорящих): флаг `--diarize`, бэкенд `pyannote/speaker-diarization-community-1`.
   Устанавливается отдельно (`requirements-diarization.txt`), в базовую установку не входит.
+- Опциональный бэкенд OpenVINO (`--backend ov`): Intel GPU/XPU, NPU или CPU.
+  На встроенной Arc iGPU даёт ~5–10× ускорение против CPU-пути (проверено на Core Ultra 9 285H:
+  8-мин запись — ~22–34 с против ~150 с). Устанавливается отдельно (`requirements-openvino.txt`).
 
 ## Готовые сборки (Windows)
 
@@ -21,6 +24,9 @@
 | `secretary.exe` | ~300 МБ | ✓ |
 
 Модели скачиваются при первом запуске автоматически. Для диаризации положи `.env` с токеном рядом с exe (см. шаблон `.env.sample` в релизе) или задай переменную окружения `HF_TOKEN`.
+
+> Готовые exe собраны с CPU-путём (faster-whisper). Бэкенд OpenVINO (`--backend ov`)
+> в них не входит — для него нужна установка из исходников с extra `openvino`.
 
 ## Установка
 
@@ -38,6 +44,14 @@ pip install -e .                # консольная команда `secretary
 ```bash
 pip install -r requirements-diarization.txt
 # или: pip install -e .[diarization]
+```
+
+Бэкенд OpenVINO (`--backend ov`) — тоже опционален (тянет `openvino-genai`). Нужен,
+если хотите считать на Intel GPU/XPU или NPU вместо CPU:
+
+```bash
+pip install -r requirements-openvino.txt
+# или: pip install -e .[openvino]
 ```
 
 После установки можно запускать одной командой через `run.cmd` (Windows) или `run.sh` (Linux/macOS) — без ручной активации venv:
@@ -77,9 +91,57 @@ secretary лекция.mp3 --diarize --format srt
 
 # системный промпт для распознавания
 secretary лекция.mp3 --prompt "Транскрипция лекции по программированию"
+
+# OpenVINO на Intel GPU (Arc iGPU) — заметно быстрее CPU-пути
+secretary запись.m4a --backend ov --ov-device GPU --language ru \
+  --model OpenVINO/whisper-large-v3-turbo-int8-ov
 ```
 
 `python -m secretary ...` работает так же.
+
+## Бэкенд OpenVINO (Intel GPU/XPU, NPU, CPU)
+
+Флаг `--backend ov` переключает движок с faster-whisper (CTranslate2) на
+`openvino_genai.WhisperPipeline`. Аудио и фильтр тишины берутся из faster-whisper
+(PyAV + Silero VAD), поэтому поведение `--vad/--no-vad` и таймкоды согласованы.
+
+- Устройство: `--ov-device GPU` (по умолчанию), `NPU` или `CPU`; либо env `SECRETARY_OV_DEVICE`.
+- `--device` и `--compute-type` относятся только к бэкенду `ct2` (для `ov` игнорируются).
+- Модели:
+  - готовые OV-IR с Hugging Face: `--model OpenVINO/whisper-large-v3-turbo-int8-ov`;
+  - короткие алиасы (`tiny`/`base`/`small`/`medium`/`large-v3`/`large-v3-turbo`)
+    разворачиваются в соответствующие `OpenVINO/whisper-...-int8-ov`;
+  - локальная папка с OV-IR (маркер `openvino_encoder_model.xml`).
+
+```bash
+# алиас -> OpenVINO/whisper-large-v3-turbo-int8-ov
+secretary запись.m4a --backend ov --ov-device GPU --language ru
+
+# своя (предконвертированная) модель, напр. русский fine-tune
+secretary запись.m4a --backend ov --model ./models/whisper-large-v3-turbo-russian-fp16-ov
+```
+
+### Конвертация своей модели (напр. русского fine-tune)
+
+Конвертация — разовая операция и требует отдельного окружения с `optimum-intel`
+(тянет torch/transformers/nncf), в рантайм secretary не входит:
+
+```bash
+py -3.12 -m venv .conv-venv
+.conv-venv\Scripts\pip install "optimum[openvino]"
+.conv-venv\Scripts\python tools\convert_openvino.py \
+  --model coriollon/whisper-large-v3-turbo-russian \
+  --output models/whisper-large-v3-turbo-russian-fp16-ov \
+  --weight-format fp16
+```
+
+Нужны полные веса HF (`model.safetensors`) — у `coriollon/...` они есть в корне
+репозитория; CT2-подпапки (`ct2_*`) для OpenVINO не подходят.
+
+Ограничение: словесные таймкоды (`--format srt` на уровне слов) доступны только
+у моделей с decomposed cross-attention; иначе секретарь откатывается на сегментные
+таймкоды и предупреждает в `-v`. Вывод в целом совпадает с CPU-путём: на тестовой
+8-мин записи word-similarity ~0.95 к faster-whisper.
 
 ## Модели с подпапками (pre-quantized, faster-whisper)
 

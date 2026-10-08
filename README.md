@@ -8,6 +8,9 @@ Batch audio transcription to text — fully local, no cloud.
 - Language is auto-detected by default.
 - Speaker diarization (`--diarize`): `pyannote/speaker-diarization-community-1` backend.
   Installed separately (`requirements-diarization.txt`), not part of the base install.
+- Optional OpenVINO backend (`--backend ov`): Intel GPU/XPU, NPU or CPU.
+  On an integrated Arc iGPU it runs ~5–10× faster than the CPU path (measured on a Core Ultra 9
+  285H: an 8-minute recording in ~22–34 s vs ~150 s). Installed separately (`requirements-openvino.txt`).
 
 ## Pre-built binaries (Windows)
 
@@ -19,6 +22,9 @@ Grab a ready-to-run exe from [GitHub Releases](https://github.com/sergeyfedyakov
 | `secretary.exe` | ~300 MB | ✓ |
 
 Models are downloaded automatically on first run. For diarization, drop an `.env` file with your token next to the exe (use `.env.sample` from the release as a template), or set the `HF_TOKEN` environment variable.
+
+> The pre-built exes ship the CPU path (faster-whisper) only. The OpenVINO backend
+> (`--backend ov`) is not bundled — install from source with the `openvino` extra to use it.
 
 [Русская версия](README.ru.md)
 
@@ -38,6 +44,14 @@ because it pulls in heavy torch/pyannote. Install it separately if needed:
 ```bash
 pip install -r requirements-diarization.txt
 # or: pip install -e .[diarization]
+```
+
+The OpenVINO backend (`--backend ov`) is optional too (pulls in `openvino-genai`).
+Install it if you want to run on an Intel GPU/XPU or NPU instead of the CPU:
+
+```bash
+pip install -r requirements-openvino.txt
+# or: pip install -e .[openvino]
 ```
 
 After installation you can use `run.cmd` (Windows) or `run.sh` (Linux/macOS) for one-command launch (no manual venv activation):
@@ -77,9 +91,57 @@ secretary lecture.mp3 --diarize --format srt
 
 # system prompt for recognition
 secretary lecture.mp3 --prompt "Transcription of a programming lecture"
+
+# OpenVINO on an Intel GPU (Arc iGPU) — much faster than the CPU path
+secretary recording.m4a --backend ov --ov-device GPU --language ru \
+  --model OpenVINO/whisper-large-v3-turbo-int8-ov
 ```
 
 `python -m secretary ...` works the same way.
+
+## OpenVINO backend (Intel GPU/XPU, NPU, CPU)
+
+`--backend ov` switches the engine from faster-whisper (CTranslate2) to
+`openvino_genai.WhisperPipeline`. Audio decoding and the silence filter come from
+faster-whisper (PyAV + Silero VAD), so `--vad/--no-vad` behavior and timestamps match.
+
+- Device: `--ov-device GPU` (default), `NPU` or `CPU`; or the `SECRETARY_OV_DEVICE` env var.
+- `--device` and `--compute-type` apply to the `ct2` backend only (ignored for `ov`).
+- Models:
+  - ready-made OV IR from Hugging Face: `--model OpenVINO/whisper-large-v3-turbo-int8-ov`;
+  - short aliases (`tiny`/`base`/`small`/`medium`/`large-v3`/`large-v3-turbo`) resolve to
+    the matching `OpenVINO/whisper-...-int8-ov`;
+  - a local OV IR folder (marker file `openvino_encoder_model.xml`).
+
+```bash
+# alias -> OpenVINO/whisper-large-v3-turbo-int8-ov
+secretary recording.m4a --backend ov --ov-device GPU --language ru
+
+# your own (pre-converted) model, e.g. a Russian fine-tune
+secretary recording.m4a --backend ov --model ./models/whisper-large-v3-turbo-russian-fp16-ov
+```
+
+### Converting your own model (e.g. a Russian fine-tune)
+
+Conversion is a one-off and needs a separate environment with `optimum-intel`
+(pulls torch/transformers/nncf); it is not part of the secretary runtime:
+
+```bash
+py -3.12 -m venv .conv-venv
+.conv-venv\Scripts\pip install "optimum[openvino]"
+.conv-venv\Scripts\python tools\convert_openvino.py \
+  --model coriollon/whisper-large-v3-turbo-russian \
+  --output models/whisper-large-v3-turbo-russian-fp16-ov \
+  --weight-format fp16
+```
+
+Full HF weights (`model.safetensors`) are required — `coriollon/...` ships them at the
+repo root; the `ct2_*` subfolders are CTranslate2-only and cannot be used for OpenVINO.
+
+Limitation: word-level timestamps (`--format srt` at word granularity) require a model
+with decomposed cross-attention; otherwise secretary falls back to segment timestamps
+and warns under `-v`. Output otherwise matches the CPU path: on an 8-minute test
+recording, word similarity was ~0.95 vs faster-whisper.
 
 ## Models with subfolders (pre-quantized, faster-whisper)
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "secretary"
-version = "0.6.4"
+version = "0.7.0"
 description = "Batch local audio transcription to text (offline, faster-whisper)"
 readme = "README.md"
 license = "MIT"
@@ -17,6 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 diarization = ["pyannote.audio>=4.0"]
+openvino = ["openvino-genai>=2026.4.1", "openvino-tokenizers>=2026.4.1"]
 
 [project.scripts]
 secretary = "secretary.cli:main"

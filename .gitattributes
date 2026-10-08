@@ -1,0 +1,3 @@
+# Batch-файлы: git хранит LF, рабочие копии — CRLF.
+# cmd.exe на Windows при LF-only съедает первый символ строк — батник ломается.
+*.cmd text eol=crlf

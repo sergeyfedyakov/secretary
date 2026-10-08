@@ -17,6 +17,7 @@ from tqdm import tqdm
 from . import __version__
 from .diarization import create_diarizer
 from .engine import TranscriptionEngine, get_audio_duration
+from .engine_ov import OpenVINOEngine
 from .env import load_env_file
 from .model_registry import AUDIO_EXTENSIONS, DEFAULT_MODEL
 
@@ -52,6 +53,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="Код языка (ru, en, ...). По умолчанию — автоопределение.",
     )
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
+    parser.add_argument(
+        "--backend",
+        choices=("ct2", "ov"),
+        default=os.environ.get("SECRETARY_BACKEND", "ct2"),
+        help="Движок: ct2 — faster-whisper (CPU/CUDA); "
+             "ov — OpenVINO (Intel GPU/XPU, NPU, CPU; ставится отдельно).",
+    )
+    parser.add_argument(
+        "--ov-device",
+        default=None,
+        help="Устройство OpenVINO для --backend ov (env SECRETARY_OV_DEVICE): "
+             "GPU (по умолчанию), NPU, CPU.",
+    )
     parser.add_argument(
         "--compute-type",
         default="auto",
@@ -211,15 +225,30 @@ def main(argv: list[str] | None = None) -> int:
         print("ОШИБКА: не найдено ни одного аудиофайла по заданным путям.", file=sys.stderr)
         return 1
 
-    engine = TranscriptionEngine(
-        model=args.model,
-        device=args.device,
-        compute_type=args.compute_type,
-        cache_dir=args.model_cache,
-        language=args.language,
-        vad_filter=args.vad,
-        verbose=args.verbose,
-    )
+    if args.backend == "ov":
+        if args.compute_type != "auto":
+            print(
+                "ПРЕДУПРЕЖДЕНИЕ: --compute-type игнорируется для --backend ov.",
+                file=sys.stderr,
+            )
+        engine = OpenVINOEngine(
+            model=args.model,
+            device=args.ov_device,
+            cache_dir=args.model_cache,
+            language=args.language,
+            vad_filter=args.vad,
+            verbose=args.verbose,
+        )
+    else:
+        engine = TranscriptionEngine(
+            model=args.model,
+            device=args.device,
+            compute_type=args.compute_type,
+            cache_dir=args.model_cache,
+            language=args.language,
+            vad_filter=args.vad,
+            verbose=args.verbose,
+        )
 
     diarizer = None
     if args.diarize:
